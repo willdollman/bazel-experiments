@@ -1,0 +1,67 @@
+# Load container_image
+load("@io_bazel_rules_docker//container:container.bzl", "container_image")
+
+# Load Go
+load("@io_bazel_rules_go//go:def.bzl", "go_binary")
+
+# Compile Go binary
+go_binary(
+    name = "go_main",
+    srcs = ["main.go"],
+)
+
+# For go_image
+# load("@io_bazel_rules_docker//go:image.bzl", "go_image")
+
+# Example image using java_base
+container_image(
+    name = "app",
+    # References container_pull from WORKSPACE (above)
+    base = "@java_base//image",
+    cmd = ["Hello World!"],
+    entrypoint = ["echo"],
+)
+
+# Alpine x86-64 image with shell
+container_image(
+    name = "alpine_shell_x64",
+    base = "@alpine-base-x64//image",
+    cmd = ["/bin/sh"],
+)
+
+# Alpine arm64 image with shell
+container_image(
+    name = "alpine_shell_arm64",
+    architecture = "arm64",
+    base = "@alpine-base-arm64//image",
+    cmd = ["/bin/sh"],
+)
+
+# Image running a Go script
+# NOTE: go_image doesn't work on macOS due to a bug
+# go_image(
+#     name = "go_print",
+#     srcs = ["main.go"],
+#     importpath = "main",
+# )
+
+# Alpine x86-64 image that runs a Go binary
+# Requires .bazelrc to build on macOS OR the following flags
+#   bazel run --platforms=@io_bazel_rules_go//go/toolchain:linux_amd64 --@io_bazel_rules_docker//transitions:enable=false //sunflower:alpine_go
+container_image(
+    name = "alpine_go",
+    base = "@alpine-base-x64//image",
+    cmd = ["/go_main"],
+    files = [":go_main"],
+)
+
+# Alpine arm64 image that runs a Go binary
+# Requires .bazelrc to build on macOS OR the following flags
+#   bazel run --platforms=@io_bazel_rules_go//go/toolchain:linux_arm64 --@io_bazel_rules_docker//transitions:enable=false //sunflower:alpine_go_arm
+container_image(
+    name = "alpine_go_arm64",
+    architecture = "arm64",
+    base = "@alpine-base-arm64//image",
+    cmd = ["/go_main"],
+    files = [":go_main"],
+)
