@@ -1,0 +1,61 @@
+# Load container_image
+load("@io_bazel_rules_docker//container:container.bzl", "container_image")
+# load("@package_bundle_stretch//file:packages.bzl", packages_amd64_debian9 = "packages")
+# load("@package_bundle_bullseye//file:packages.bzl", packages_amd64_debian11 = "packages")
+
+# Load Go
+load("@io_bazel_rules_go//go:def.bzl", "go_binary")
+load("@package_bundle//file:dpkg.bzl", packages_amd64_debian10 = "packages")
+
+# Compile Go binary
+go_binary(
+    name = "main",
+    srcs = ["main.go"],
+)
+
+# Distroless image that runs a simple Go binary
+# Requires .bazelrc to build on macOS OR the following flags
+#   bazel run --platforms=@io_bazel_rules_go//go/toolchain:linux_amd64 --@io_bazel_rules_docker//transitions:enable=false //sunflower:alpine_go
+container_image(
+    name = "distroless_go",
+    base = "@distroless-base//image",
+    cmd = ["/main"],
+    files = [":main"],
+)
+
+# Distroless image that runs a simple Go binary - debug image containing a shell
+# Get a shell with: docker run --entrypoint=sh -it bazel/simple-go:distroless_go_debug
+# Running this container throws an error
+# container_image(
+#     name = "distroless_packages",
+#     base = "@distroless-base//image",
+#     debs = [
+#         packages_amd64_debian9["zlib1g"],
+#         packages_amd64_debian9["python2.7-minimal"],
+#         packages_amd64_debian9["libpython2.7-minimal"],
+#         packages_amd64_debian9["libpython2.7-stdlib"],
+#     ],
+#     # debs = [
+#     #     packages_amd64_debian11["zlib1g"],
+#     #     packages_amd64_debian11["python2.7-minimal"],
+#     #     packages_amd64_debian11["libpython2.7-minimal"],
+#     #     packages_amd64_debian11["libpython2.7-stdlib"],
+#     # ],
+# )
+
+container_image(
+    name = "python27",
+    base = "//base:base",
+    debs = [
+        packages_amd64_debian10["zlib1g"],
+        packages_amd64_debian10["python2.7-minimal"],
+        packages_amd64_debian10["libpython2.7-minimal"],
+        packages_amd64_debian10["libpython2.7-stdlib"],
+    ],
+    entrypoint = [
+        "/usr/bin/python2.7",
+    ],
+    symlinks = {
+        "/usr/bin/python": "/usr/bin/python2.7",
+    },
+)

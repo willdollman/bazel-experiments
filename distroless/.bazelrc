@@ -1,0 +1,6 @@
+# build:clang_config --host_crosstool_top=@bazel_tools//tools/cpp:toolchain
+
+# On macOS, don't use Docker transitions (breaks due to C++ toolchain) and ensure that Go binaries target linux_amd64.
+# This isn't perfect, because we can't run the go_binary targets natively - they'll only work in the containers. rules_docker//transitions would take care of this for us.
+build --@io_bazel_rules_docker//transitions:enable=false
+build --platforms=@io_bazel_rules_go//go/toolchain:linux_amd64

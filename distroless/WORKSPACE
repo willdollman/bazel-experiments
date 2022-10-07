@@ -1,0 +1,153 @@
+## General rules
+load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository")
+
+## rules_go
+http_archive(
+    name = "io_bazel_rules_go",
+    sha256 = "099a9fb96a376ccbbb7d291ed4ecbdfd42f6bc822ab77ae6f1b5cb9e914e94fa",
+    urls = [
+        "https://mirror.bazel.build/github.com/bazelbuild/rules_go/releases/download/v0.35.0/rules_go-v0.35.0.zip",
+        "https://github.com/bazelbuild/rules_go/releases/download/v0.35.0/rules_go-v0.35.0.zip",
+    ],
+)
+
+load("@io_bazel_rules_go//go:deps.bzl", "go_register_toolchains", "go_rules_dependencies")
+
+go_rules_dependencies()
+
+go_register_toolchains(version = "1.19.1")
+
+## rules_docker
+http_archive(
+    name = "io_bazel_rules_docker",
+    sha256 = "b1e80761a8a8243d03ebca8845e9cc1ba6c82ce7c5179ce2b295cd36f7e394bf",
+    urls = ["https://github.com/bazelbuild/rules_docker/releases/download/v0.25.0/rules_docker-v0.25.0.tar.gz"],
+)
+
+load(
+    "@io_bazel_rules_docker//repositories:repositories.bzl",
+    container_repositories = "repositories",
+)
+
+container_repositories()
+
+load("@io_bazel_rules_docker//repositories:deps.bzl", container_deps = "deps")
+
+container_deps()
+
+load(
+    "@io_bazel_rules_docker//container:container.bzl",
+    "container_pull",
+)
+
+#
+# Everything prior to this line is necessary and sufficient to build Docker images
+#
+
+## Gazelle
+http_archive(
+    name = "bazel_gazelle",
+    sha256 = "d8c45ee70ec39a57e7a05e5027c32b1576cc7f16d9dd37135b0eddde45cf1b10",
+    urls = [
+        "https://storage.googleapis.com/bazel-mirror/github.com/bazelbuild/bazel-gazelle/releases/download/v0.20.0/bazel-gazelle-v0.20.0.tar.gz",
+        "https://github.com/bazelbuild/bazel-gazelle/releases/download/v0.20.0/bazel-gazelle-v0.20.0.tar.gz",
+    ],
+)
+
+load("@bazel_gazelle//:deps.bzl", "gazelle_dependencies")
+
+gazelle_dependencies()
+
+## Package Management
+git_repository(
+    name = "distroless",
+    commit = "3f5fac335df423f62ece1513bc16b7899077d755",  # 2022-10 commit
+    # commit = "813d1ddef217f3871e4cb0a73da100aeddc638ee",
+    remote = "https://github.com/GoogleContainerTools/distroless",
+)
+
+load("@distroless//package_manager:dpkg.bzl", "dpkg_list", "dpkg_src")
+
+# dpkg_src(
+#     name = "debian_stretch",
+#     arch = "amd64",
+#     distro = "stretch",
+#     sha256 = "4cb2fac3e32292613b92d3162e99eb8a1ed7ce47d1b142852b0de3092b25910c",
+#     snapshot = "20180406T095535Z",
+#     url = "http://snapshot.debian.org/archive",
+# )
+
+# dpkg_list(
+#     name = "package_bundle_stretch",
+#     packages = [
+#         "locales",
+#         "locales-all",
+#         "libpython2.7-minimal",
+#         "python2.7-minimal",
+#         "libpython2.7-stdlib",
+#         # Add any other debian packages you need here.
+#     ],
+#     sources = [
+#         "@debian_stretch//file:Packages.json",
+#     ],
+# )
+
+dpkg_src(
+    name = "debian_stretch",
+    arch = "amd64",
+    distro = "stretch",
+    sha256 = "9aea0e4c9ce210991c6edcb5370cb9b11e9e554a0f563e7754a4028a8fd0cb73",
+    snapshot = "20171101T160520Z",
+    url = "http://snapshot.debian.org/archive",
+)
+
+dpkg_list(
+    name = "package_bundle",
+    packages = [
+        "libpython2.7-minimal",
+        "libpython2.7-stdlib",
+        "python2.7-minimal",
+        "zlib1g",
+    ],
+    sources = [
+        "@debian_stretch//file:Packages.json",
+    ],
+)
+
+# dpkg_src(
+#     name = "debian_bullseye",
+#     arch = "amd64",
+#     distro = "bullseye",
+#     snapshot = "20221007T085526Z",
+#     url = "http://snapshot.debian.org/archive",
+# )
+
+# dpkg_list(
+#     name = "package_bundle_bullseye",
+#     packages = [
+#         "libpython2.7-minimal",
+#         "libpython2.7-stdlib",
+#         "python2.7-minimal",
+#         "zlib1g",
+#     ],
+#     sources = [
+#         "@debian_bullseye//file:Packages.json",
+#     ],
+# )
+
+# Pull the alpine container, which we can reuse in BUILD files
+container_pull(
+    name = "distroless-base",
+    digest = "sha256:826bce53be26d70d4c7a99d1bdadef47f73134ed47b90b8480a2f4a96b300461",
+    registry = "gcr.io",
+    repository = "distroless/base",
+)
+
+container_pull(
+    name = "distroless-base-debug",
+    digest = "sha256:8d05e80884a162e076008b5ac4ee75e0907ae7b12cf90cd77fb9ad485d4eebd9",
+    registry = "gcr.io",
+    repository = "distroless/base",
+    tag = "debug",
+)
